@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Brand Colors - Soft Leaf Green -->
+    <color name="primary">#7CB342</color>
+    <color name="primary_dark">#689F38</color>
+    <color name="primary_light">#9CCC65</color>
+    <color name="primary_variant">#558B2F</color>
+
+    <!-- Accent Colors - Complementary Orange -->
+    <color name="accent">#FF9800</color>
+    <color name="accent_dark">#F57C00</color>
+    <color name="accent_light">#FFB74D</color>
+
+    <!-- Background Colors - Light Grey Tones -->
+    <color name="background_primary">#F5F5F5</color>
+    <color name="background_secondary">#FAFAFA</color>
+    <color name="background_tertiary">#E8E8E8</color>
+
+    <!-- Surface Colors -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F8F9FA</color>
+    <color name="surface_elevated">#FFFFFF</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_tertiary">#9E9E9E</color>
+    <color name="text_on_primary">#FFFFFF</color>
+    <color name="text_on_accent">#FFFFFF</color>
+
+    <!-- Status Colors -->
+    <color name="success">#66BB6A</color>
+    <color name="error">#EF5350</color>
+    <color name="warning">#FFA726</color>
+    <color name="info">#42A5F5</color>
+
+    <!-- Chart Colors -->
+    <color name="chart_blue">#42A5F5</color>
+    <color name="chart_pink">#EC407A</color>
+    <color name="chart_purple">#AB47BC</color>
+    <color name="chart_green">#66BB6A</color>
+    <color name="chart_orange">#FFA726</color>
+
+    <!-- Transparent Overlays -->
+    <color name="overlay_light">#1A000000</color>
+    <color name="overlay_medium">#40000000</color>
+    <color name="overlay_dark">#80000000</color>
+
+    <!-- Dividers and Borders -->
+    <color name="divider">#E0E0E0</color>
+    <color name="border">#BDBDBD</color>
+
+    <!-- Bottom Navigation Colors -->
+    <color name="bottom_nav_selected">#7CB342</color>
+    <color name="bottom_nav_unselected">#9E9E9E</color>
+
+    <!-- Legacy color names for compatibility (DO NOT REMOVE) -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="dark_bg">#F5F5F5</color>
+    <color name="card_dark">#FFFFFF</color>
+    <color name="primary_neon">#7CB342</color>
+    <color name="secondary_neon">#FF9800</color>
+    <color name="neon_yellow">#FF9800</color>
+    <color name="text_dim">#9E9E9E</color>
+    <color name="text_medium_emphasis">#757575</color>
+    <color name="text_high_emphasis">#212121</color>
+    <color name="background_light">#F5F5F5</color>
+    <color name="primary_color">#7CB342</color>
+    <color name="background_color">#F5F5F5</color>
+    <color name="accent_neon">#FF9800</color>
+    <color name="surface_dark">#FFFFFF</color>
+</resources>

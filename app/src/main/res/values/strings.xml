@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Buddy Manager</string>
+
+    <!-- Login Screen -->
+    <string name="sign_in">Sign In</string>
+    <string name="sign_in_subtitle">Enter your details to continue</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="create_new_account">Create New Account</string>
+
+    <!-- Register Screen -->
+    <string name="join_us">Join\nUs</string>
+    <string name="create_account">Create Account</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="register">Register</string>
+
+    <!-- Main Screen -->
+    <string name="hello_user">Hello %s!</string>
+    <string name="search_buddies">Search Buddies...</string>
+
+    <!-- Statistics Screen -->
+    <string name="statistics">Statistics</string>
+    <string name="gender">Gender</string>
+    <string name="months">Months</string>
+    <string name="summary">Summary</string>
+    <string name="gender_distribution">Gender Distribution</string>
+    <string name="birthdays_by_month">Birthdays by Month</string>
+    <string name="total_buddies">Total Buddies</string>
+    <string name="back_to_home">Back to Home</string>
+    <string name="male_count">Male: %d</string>
+    <string name="female_count">Female: %d</string>
+
+    <!-- Add/Edit Buddy Dialog -->
+    <string name="buddy_details">Buddy Details</string>
+    <string name="name">Name</string>
+    <string name="male">Male</string>
+    <string name="female">Female</string>
+    <string name="birthday">Birthday</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="email_address">Email Address</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Buttons -->
+    <string name="add">Add</string>
+    <string name="update">Update</string>
+    <string name="delete">Delete</string>
+    <string name="logout">Logout</string>
+
+    <!-- Messages -->
+    <string name="error_empty_field">This field is required</string>
+    <string name="error_invalid_email">Please enter a valid email</string>
+    <string name="error_password_mismatch">Passwords do not match</string>
+    <string name="success_buddy_added">Buddy added successfully</string>
+    <string name="success_buddy_updated">Buddy updated successfully</string>
+    <string name="success_buddy_deleted">Buddy deleted successfully</string>
+    <string name="confirm_delete">Are you sure you want to delete this buddy?</string>
+    <string name="confirm_logout">Are you sure you want to logout?</string>
+
+</resources>
