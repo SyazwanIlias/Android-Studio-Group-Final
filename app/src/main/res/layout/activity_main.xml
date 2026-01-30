@@ -14,7 +14,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/surface"
-        android:elevation="5dp">
+        android:elevation="4dp">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -30,7 +30,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Welcome Back"
+                    android:text="@string/welcome_back"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary" />
 
@@ -38,7 +38,7 @@
                     android:id="@+id/tvWelcome"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Lester"
+                    android:text="@string/lester"
                     android:textAppearance="@style/TextAppearance.App.Headline2"
                     android:textColor="@color/primary"
                     android:layout_marginTop="4dp" />
@@ -54,97 +54,174 @@
                 android:src="@android:drawable/ic_lock_power_off"
                 android:padding="8dp"
                 android:scaleType="centerInside"
-                app:tint="@color/error" />
+                app:tint="@color/error"
+                android:contentDescription="@string/content_description_logout" />
         </RelativeLayout>
 
-        <!-- Search Bar -->
-        <com.google.android.material.card.MaterialCardView
+        <!-- Search Bar and Filter -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginHorizontal="20dp"
-            android:layout_marginBottom="-28dp"
-            app:cardCornerRadius="28dp"
-            app:cardElevation="8dp"
-            app:cardBackgroundColor="@color/surface">
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginStart="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="-28dp">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingHorizontal="20dp">
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="1"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="8dp"
+                app:cardBackgroundColor="@color/surface">
 
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@android:drawable/ic_menu_search"
-                    app:tint="@color/primary" />
-
-                <EditText
-                    android:id="@+id/etSearch"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:layout_marginStart="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="20dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/ic_menu_search"
+                        app:tint="@color/primary"
+                        android:contentDescription="@string/content_description_search_icon" />
+
+                    <EditText
+                        android:id="@+id/etSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="12dp"
+                        android:background="@android:color/transparent"
+                        android:hint="@string/search_buddies_hint"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_tertiary"
+                        android:textSize="15sp"
+                        android:autofillHints="name" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="wrap_content"
+                android:minWidth="150dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="8dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="8dp">
+
+                <Spinner
+                    android:id="@+id/spinnerMonthFilter"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@android:color/transparent"
-                    android:hint="Search buddies..."
-                    android:textColorHint="@color/text_tertiary"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp"
-                    android:inputType="text"
-                    android:imeOptions="actionSearch" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp" />
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Buddies List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvBuddies"
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="44dp"
-        android:paddingBottom="100dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
         android:clipToPadding="false"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        android:paddingBottom="180dp">
 
-    <!-- Bottom App Bar -->
-    <com.google.android.material.bottomappbar.BottomAppBar
-        android:id="@+id/bottomAppBar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        app:backgroundTint="@color/surface"
-        app:fabAlignmentMode="center"
-        app:fabCradleMargin="12dp"
-        app:fabCradleRoundedCornerRadius="50dp"
-        app:fabCradleVerticalOffset="8dp"
-        app:elevation="12dp">
-
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottomNavigation"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="16dp"
-            android:background="@android:color/transparent"
-            app:elevation="0dp"
-            app:labelVisibilityMode="labeled"
-            app:itemIconSize="24dp"
-            app:itemActiveIndicatorStyle="@null"
-            app:menu="@menu/bottom_nav_menu" />
-    </com.google.android.material.bottomappbar.BottomAppBar>
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="44dp"
+            android:paddingHorizontal="16dp">
 
-    <!-- FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btnAdd"
+            <!-- Upcoming Birthday Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardUpcomingBirthday"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/primary"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/upcoming_birthday"
+                        android:textAppearance="?attr/textAppearanceHeadline6"
+                        android:textColor="@android:color/white" />
+
+                    <TextView
+                        android:id="@+id/tvUpcomingBuddyName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="?attr/textAppearanceBody1"
+                        android:textColor="@android:color/white"
+                        android:textStyle="bold"
+                        tools:text="Buddy Name" />
+
+                    <TextView
+                        android:id="@+id/tvUpcomingBuddyDate"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceBody2"
+                        android:textColor="@android:color/white"
+                        tools:text="January 1st" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Buddies List -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvBuddies"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- FABs -->
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/accent"
-        app:tint="@color/text_on_accent"
-        app:layout_anchor="@id/bottomAppBar"
-        app:maxImageSize="32dp"
-        app:elevation="12dp"
-        app:borderWidth="0dp"
-        app:fabSize="normal" />
+        android:layout_gravity="bottom|end"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_statistics"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            app:backgroundTint="@color/primary"
+            app:tint="@android:color/white"
+            android:layout_marginBottom="16dp"
+            android:contentDescription="@string/content_description_statistics_fab" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_add_buddy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_input_add"
+            app:backgroundTint="@color/accent"
+            app:tint="@color/text_on_accent"
+            android:contentDescription="@string/content_description_add_buddy_fab" />
+
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

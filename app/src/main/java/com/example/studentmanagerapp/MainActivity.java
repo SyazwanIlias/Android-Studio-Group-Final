@@ -2,7 +2,6 @@ package com.example.studentmanagerapp;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -10,20 +9,26 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.EditText;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseHelper db;
     private BuddyAdapter adapter;
     private RecyclerView recyclerView;
+    private Spinner monthFilterSpinner;
     private long userId, selectedBuddyId = -1;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -49,10 +55,18 @@ public class MainActivity extends AppCompatActivity {
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
 
-        FloatingActionButton btnAdd = findViewById(R.id.btnAdd);
-        if (btnAdd != null) {
-            btnAdd.setOnClickListener(v -> showBuddyDialog(null));
-        }
+        monthFilterSpinner = findViewById(R.id.spinnerMonthFilter);
+        setupMonthFilterSpinner();
+
+        FloatingActionButton fabAddBuddy = findViewById(R.id.fab_add_buddy);
+        fabAddBuddy.setOnClickListener(v -> showBuddyDialog(null));
+
+        FloatingActionButton fabStatistics = findViewById(R.id.fab_statistics);
+        fabStatistics.setOnClickListener(v -> {
+            Intent i = new Intent(this, ReportsActivity.class);
+            i.putExtra("USER_ID", userId);
+            startActivity(i);
+        });
 
         ImageButton btnLogout = findViewById(R.id.btnLogout);
         if (btnLogout != null) {
@@ -65,63 +79,111 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        setupBottomNavigation();
         loadBuddies();
+        loadUpcomingBirthday();
     }
 
-    private void setupBottomNavigation() {
-        BottomNavigationView bottomNav = findViewById(R.id.bottomNavigation);
-        if (bottomNav == null) return;
+    private void loadUpcomingBirthday() {
+        executorService.execute(() -> {
+            Cursor cursor = db.getAllBuddiesWithDob(userId);
+            if (cursor == null) return;
 
-        bottomNav.setBackground(null);
-        bottomNav.setItemActiveIndicatorEnabled(false);
+            String closestBuddyName = null;
+            long minDays = Long.MAX_VALUE;
+            String closestDate = null;
 
-        // Setup color changing for selected/unselected states
-        setupBottomNavColors(bottomNav);
+            Calendar today = Calendar.getInstance();
+            int currentYear = today.get(Calendar.YEAR);
 
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
+            while (cursor.moveToNext()) {
+                String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
+                String dobString = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_DOB));
 
-            if (id == R.id.nav_home) {
-                // Already on home screen
-                return true;
+                try {
+                    Date dob = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dobString);
+                    Calendar dobCal = Calendar.getInstance();
+                    if (dob != null) {
+                        dobCal.setTime(dob);
+                    }
+                    dobCal.set(Calendar.YEAR, currentYear);
 
-            } else if (id == R.id.nav_stats) {
-                // Open statistics screen
-                Intent i = new Intent(this, ReportsActivity.class);
-                i.putExtra("USER_ID", userId);
-                startActivity(i);
-                return true;
+                    if (dobCal.before(today)) {
+                        dobCal.add(Calendar.YEAR, 1);
+                    }
 
-            } else if (id == R.id.nav_wish) {
-                // Send WhatsApp wish
-                sendWhatsApp();
-                return true;
+                    long diff = dobCal.getTimeInMillis() - today.getTimeInMillis();
+                    long days = diff / (24 * 60 * 60 * 1000);
 
-            } else if (id == R.id.nav_settings) {
-                // Settings placeholder
-                Toast.makeText(this, "Settings - Coming Soon", Toast.LENGTH_SHORT).show();
-                return true;
+                    if (days < minDays) {
+                        minDays = days;
+                        closestBuddyName = name;
+                        closestDate = new SimpleDateFormat("MMMM d", Locale.getDefault()).format(dobCal.getTime());
+                    }
+                } catch (ParseException e) {
+                    // Log the exception
+                }
             }
-            return false;
+            cursor.close();
+
+            String finalClosestBuddyName = closestBuddyName;
+            String finalClosestDate = closestDate;
+
+            mainHandler.post(() -> {
+                CardView upcomingBirthdayCard = findViewById(R.id.cardUpcomingBirthday);
+                if (finalClosestBuddyName != null) {
+                    TextView tvName = findViewById(R.id.tvUpcomingBuddyName);
+                    TextView tvDate = findViewById(R.id.tvUpcomingBuddyDate);
+
+                    tvName.setText(finalClosestBuddyName);
+                    tvDate.setText(finalClosestDate);
+
+                    upcomingBirthdayCard.setVisibility(View.VISIBLE);
+                } else {
+                    upcomingBirthdayCard.setVisibility(View.GONE);
+                }
+            });
         });
     }
 
-    private void setupBottomNavColors(BottomNavigationView bottomNav) {
-        // Create color state list for icon and text colors
-        int[][] states = new int[][] {
-                new int[] { android.R.attr.state_checked },   // selected
-                new int[] { -android.R.attr.state_checked }   // unselected
-        };
+    private void setupMonthFilterSpinner() {
+        ArrayAdapter<CharSequence> spinnerAdapter = ArrayAdapter.createFromResource(this,
+                R.array.months_array, android.R.layout.simple_spinner_item);
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        monthFilterSpinner.setAdapter(spinnerAdapter);
 
-        int[] colors = new int[] {
-                ContextCompat.getColor(this, R.color.primary),         // green when selected
-                ContextCompat.getColor(this, R.color.text_tertiary)    // grey when unselected
-        };
+        monthFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == 0) {
+                    loadBuddies();
+                } else {
+                    String month = String.format(Locale.US, "%02d", position);
+                    loadBuddiesByMonth(month);
+                }
+            }
 
-        ColorStateList colorStateList = new ColorStateList(states, colors);
-        bottomNav.setItemIconTintList(colorStateList);
-        bottomNav.setItemTextColor(colorStateList);
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                loadBuddies();
+            }
+        });
+    }
+
+    private void loadBuddiesByMonth(String month) {
+        if (recyclerView == null) return;
+
+        executorService.execute(() -> {
+            Cursor cursor = db.getBuddiesByMonth(userId, month);
+
+            mainHandler.post(() -> {
+                if (adapter == null) {
+                    adapter = new BuddyAdapter(cursor);
+                    recyclerView.setAdapter(adapter);
+                } else {
+                    adapter.swapCursor(cursor);
+                }
+            });
+        });
     }
 
     private void loadBuddies() {
@@ -134,10 +196,9 @@ public class MainActivity extends AppCompatActivity {
                 if (adapter == null) {
                     adapter = new BuddyAdapter(cursor);
 
-                    // Item click now shows options dialog (Update, Delete, Send Wish)
-                    adapter.setOnItemClickListener(id -> {
-                        selectedBuddyId = id;
-                        showBuddyOptionsDialog(id);
+                    adapter.setOnItemClickListener(id1 -> {
+                        selectedBuddyId = id1;
+                        showBuddyOptionsDialog(id1);
                     });
 
                     recyclerView.setAdapter(adapter);
@@ -154,25 +215,23 @@ public class MainActivity extends AppCompatActivity {
             if (c != null && c.moveToFirst()) {
                 String name = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
 
-                mainHandler.post(() -> {
-                    new AlertDialog.Builder(this)
-                            .setTitle(name)
-                            .setItems(new String[]{"Update", "Delete", "Send Wish"}, (dialog, which) -> {
-                                switch (which) {
-                                    case 0: // Update
-                                        showBuddyDialog(buddyId);
-                                        break;
-                                    case 1: // Delete
-                                        confirmDelete(buddyId);
-                                        break;
-                                    case 2: // Send Wish
-                                        sendWhatsApp();
-                                        break;
-                                }
-                            })
-                            .setNegativeButton("Cancel", null)
-                            .show();
-                });
+                mainHandler.post(() -> new AlertDialog.Builder(this)
+                        .setTitle(name)
+                        .setItems(new String[]{"Update", "Delete", "Send Wish"}, (dialog, which) -> {
+                            switch (which) {
+                                case 0: // Update
+                                    showBuddyDialog(buddyId);
+                                    break;
+                                case 1: // Delete
+                                    confirmDelete(buddyId);
+                                    break;
+                                case 2: // Send Wish
+                                    sendWhatsApp();
+                                    break;
+                            }
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show());
             }
             if (c != null) c.close();
         });
@@ -194,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
             etDob.setOnClickListener(view -> {
                 Calendar c = Calendar.getInstance();
                 new DatePickerDialog(this, (dp, y, m, d) -> {
-                    String date = y + "-" + String.format("%02d", (m + 1)) + "-" + String.format("%02d", d);
+                    String date = y + "-" + String.format(Locale.US, "%02d", (m + 1)) + "-" + String.format(Locale.US, "%02d", d);
                     etDob.setText(date);
                 }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
             });
@@ -227,70 +286,59 @@ public class MainActivity extends AppCompatActivity {
                 .setTitle(id == null ? "Add Buddy" : "Update Buddy")
                 .setPositiveButton("Save", (dialog, which) -> {
                     if (etName == null || etPhone == null || etDob == null || etEmail == null || rgGender == null) return;
-                    String name = etName.getText().toString();
-                    String phone = etPhone.getText().toString();
-                    String dob = etDob.getText().toString();
-                    String email = etEmail.getText().toString();
+                    String name = etName.getText() != null ? etName.getText().toString() : "";
+                    String phone = etPhone.getText() != null ? etPhone.getText().toString() : "";
+                    String dob = etDob.getText() != null ? etDob.getText().toString() : "";
+                    String email = etEmail.getText() != null ? etEmail.getText().toString() : "";
                     String gender = rbMale.isChecked() ? "Male" : (rbFemale.isChecked() ? "Female" : "Other");
 
                     executorService.execute(() -> {
-                        if (id == null) db.insertBuddy(name, gender, dob, phone, email, userId);
-                        else db.updateBuddy(String.valueOf(id), name, gender, dob, phone, email);
+                        if (id == null) {
+                            db.insertBuddy(name, gender, dob, phone, email, userId);
+                        } else {
+                            db.updateBuddy(String.valueOf(id), name, gender, dob, phone, email);
+                        }
                         loadBuddies();
-                        mainHandler.post(() -> {
-                            Toast.makeText(MainActivity.this,
-                                    id == null ? "Buddy added!" : "Buddy updated!",
-                                    Toast.LENGTH_SHORT).show();
-                        });
                     });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
+    private void confirmDelete(long buddyId) {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirm Deletion")
+                .setMessage("Are you sure you want to delete this buddy?")
+                .setPositiveButton("Delete", (dialog, which) -> executorService.execute(() -> {
+                    db.deleteBuddy(String.valueOf(buddyId));
+                    loadBuddies();
+                }))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
     private void sendWhatsApp() {
-        if (selectedBuddyId == -1) {
-            Toast.makeText(this, "Select a buddy first!", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (selectedBuddyId == -1) return;
+
         executorService.execute(() -> {
             Cursor c = db.getBuddyById(selectedBuddyId);
             if (c != null && c.moveToFirst()) {
                 String phone = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_PHONE));
-                String cleanPhone = phone.replace("+", "").replace(" ", "").replace("-", "");
+                String name = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
+
                 mainHandler.post(() -> {
                     try {
-                        Intent intent = new Intent(Intent.ACTION_VIEW);
-                        intent.setData(Uri.parse("https://api.whatsapp.com/send?phone=" + cleanPhone + "&text=Hello!"));
-                        startActivity(intent);
+                        Intent sendIntent = new Intent();
+                        sendIntent.setAction(Intent.ACTION_VIEW);
+                        String url = "https://api.whatsapp.com/send?phone=" + phone + "&text=" + "Happy Birthday " + name + "!";
+                        sendIntent.setData(Uri.parse(url));
+                        startActivity(sendIntent);
                     } catch (Exception e) {
-                        Toast.makeText(this, "WhatsApp not installed!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "WhatsApp not installed.", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
             if (c != null) c.close();
         });
-    }
-
-    private void confirmDelete(long buddyId) {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Buddy")
-                .setMessage("Are you sure you want to delete this buddy?")
-                .setPositiveButton("Yes", (d, w) -> executorService.execute(() -> {
-                    db.deleteBuddy(String.valueOf(buddyId));
-                    selectedBuddyId = -1;
-                    loadBuddies();
-                    mainHandler.post(() -> {
-                        Toast.makeText(MainActivity.this, "Buddy deleted!", Toast.LENGTH_SHORT).show();
-                    });
-                }))
-                .setNegativeButton("No", null)
-                .show();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        executorService.shutdown();
     }
 }

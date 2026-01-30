@@ -19,6 +19,29 @@
     <!-- Main Screen -->
     <string name="hello_user">Hello %s!</string>
     <string name="search_buddies">Search Buddies...</string>
+    <string name="welcome_back">Welcome Back</string>
+    <string name="lester">Lester</string>
+    <string name="search_buddies_hint">Search buddies...</string>
+    <string name="upcoming_birthday">Upcoming Birthday</string>
+    <string name="content_description_logout">Logout</string>
+    <string name="content_description_search_icon">Search Icon</string>
+    <string name="content_description_add_buddy_fab">Add Buddy</string>
+    <string name="content_description_statistics_fab">Statistics</string>
+    <string-array name="months_array">
+        <item>All Months</item>
+        <item>January</item>
+        <item>February</item>
+        <item>March</item>
+        <item>April</item>
+        <item>May</item>
+        <item>June</item>
+        <item>July</item>
+        <item>August</item>
+        <item>September</item>
+        <item>October</item>
+        <item>November</item>
+        <item>December</item>
+    </string-array>
 
     <!-- Statistics Screen -->
     <string name="statistics">Statistics</string>

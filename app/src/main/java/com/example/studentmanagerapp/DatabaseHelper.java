@@ -121,6 +121,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{String.valueOf(userId), "%" + query + "%", "%" + query + "%"});
     }
 
+    public Cursor getBuddiesByMonth(long userId, String month) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_BUDDIES + " WHERE " + COL_BUDDY_USER_ID + "=? AND " + COL_BUDDY_DOB + " LIKE ?",
+                new String[]{String.valueOf(userId), "%-" + month + "-%"});
+    }
+
     // --- ANALYTICS & REPORTS METHODS (FIXED FOR REPORTS ACTIVITY) ---
 
     public int getBuddyCount(long userId) {
@@ -156,5 +162,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) count = cursor.getInt(0);
         cursor.close();
         return count;
+    }
+
+    public Cursor getAllBuddiesWithDob(long userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_BUDDIES + " WHERE " + COL_BUDDY_USER_ID + "=? AND " + COL_BUDDY_DOB + " IS NOT NULL AND " + COL_BUDDY_DOB + " != ''",
+                new String[]{String.valueOf(userId)});
     }
 }
