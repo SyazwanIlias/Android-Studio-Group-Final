@@ -50,6 +50,23 @@ public class MainActivity extends AppCompatActivity {
         db = new DatabaseHelper(this);
         userId = getIntent().getLongExtra("USER_ID", 1);
 
+        TextView tvWelcome = findViewById(R.id.tvWelcome);
+
+        executorService.execute(() -> {
+            Cursor c = db.getUsernameByUserId(userId);
+
+            if (c != null && c.moveToFirst()) {
+
+                String username = c.getString(
+                        c.getColumnIndexOrThrow(DatabaseHelper.COL_USERNAME)
+                );
+
+                mainHandler.post(() -> tvWelcome.setText(username));
+
+                c.close();
+            }
+        });
+
         recyclerView = findViewById(R.id.rvBuddies);
         if (recyclerView != null) {
             recyclerView.setLayoutManager(new LinearLayoutManager(this));

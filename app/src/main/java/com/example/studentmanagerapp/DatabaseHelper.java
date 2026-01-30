@@ -73,6 +73,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 new String[]{username, password});
     }
 
+    // Get username by userId
+    public Cursor getUsernameByUserId(long userId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery(
+                "SELECT " + COL_USERNAME + " FROM " + TABLE_USERS + " WHERE " + COL_USER_ID + "=?",
+                new String[]{String.valueOf(userId)}
+        );
+    }
+
     // --- BUDDY CRUD METHODS ---
 
     public boolean insertBuddy(String name, String gender, String dob, String phone, String email, long userId) {
