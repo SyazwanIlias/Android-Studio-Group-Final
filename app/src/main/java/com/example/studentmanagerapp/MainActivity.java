@@ -7,10 +7,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -38,7 +41,10 @@ public class MainActivity extends AppCompatActivity {
     private BuddyAdapter adapter;
     private RecyclerView recyclerView;
     private Spinner monthFilterSpinner;
+    private EditText etSearch;
     private long userId, selectedBuddyId = -1;
+    private String currentSearchQuery = "";
+    private int currentMonthPosition = 0;
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -72,6 +78,10 @@ public class MainActivity extends AppCompatActivity {
             recyclerView.setLayoutManager(new LinearLayoutManager(this));
         }
 
+        // Initialize search EditText
+        etSearch = findViewById(R.id.etSearch);
+        setupSearchListener();
+
         monthFilterSpinner = findViewById(R.id.spinnerMonthFilter);
         setupMonthFilterSpinner();
 
@@ -98,6 +108,63 @@ public class MainActivity extends AppCompatActivity {
 
         loadBuddies();
         loadUpcomingBirthday();
+    }
+
+    private void setupSearchListener() {
+        if (etSearch != null) {
+            etSearch.addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    currentSearchQuery = s.toString().trim();
+                    applyFilters();
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+                }
+            });
+        }
+    }
+
+    private void applyFilters() {
+        if (recyclerView == null) return;
+
+        executorService.execute(() -> {
+            Cursor cursor;
+
+            // If there's a search query, use it (it will override month filter)
+            if (!currentSearchQuery.isEmpty()) {
+                cursor = db.searchBuddiesForUser(currentSearchQuery, userId);
+            }
+            // If month filter is selected (not "All Months")
+            else if (currentMonthPosition > 0) {
+                String month = String.format(Locale.US, "%02d", currentMonthPosition);
+                cursor = db.getBuddiesByMonth(userId, month);
+            }
+            // Otherwise show all buddies
+            else {
+                cursor = db.getAllBuddiesForUser(userId);
+            }
+
+            mainHandler.post(() -> {
+                if (adapter == null) {
+                    adapter = new BuddyAdapter(cursor);
+
+                    adapter.setOnItemClickListener(id1 -> {
+                        selectedBuddyId = id1;
+                        showBuddyOptionsDialog(id1);
+                    });
+
+                    recyclerView.setAdapter(adapter);
+                } else {
+                    adapter.swapCursor(cursor);
+                }
+            });
+        });
     }
 
     private void loadUpcomingBirthday() {
@@ -171,35 +238,15 @@ public class MainActivity extends AppCompatActivity {
         monthFilterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position == 0) {
-                    loadBuddies();
-                } else {
-                    String month = String.format(Locale.US, "%02d", position);
-                    loadBuddiesByMonth(month);
-                }
+                currentMonthPosition = position;
+                applyFilters();
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                loadBuddies();
+                currentMonthPosition = 0;
+                applyFilters();
             }
-        });
-    }
-
-    private void loadBuddiesByMonth(String month) {
-        if (recyclerView == null) return;
-
-        executorService.execute(() -> {
-            Cursor cursor = db.getBuddiesByMonth(userId, month);
-
-            mainHandler.post(() -> {
-                if (adapter == null) {
-                    adapter = new BuddyAdapter(cursor);
-                    recyclerView.setAdapter(adapter);
-                } else {
-                    adapter.swapCursor(cursor);
-                }
-            });
         });
     }
 
@@ -304,18 +351,41 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Save", (dialog, which) -> {
                     if (etName == null || etPhone == null || etDob == null || etEmail == null || rgGender == null) return;
                     String name = etName.getText() != null ? etName.getText().toString() : "";
-                    String phone = etPhone.getText() != null ? etPhone.getText().toString() : "";
+                    String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
                     String dob = etDob.getText() != null ? etDob.getText().toString() : "";
                     String email = etEmail.getText() != null ? etEmail.getText().toString() : "";
                     String gender = rbMale.isChecked() ? "Male" : (rbFemale.isChecked() ? "Female" : "Other");
 
+                    // Format phone number with +60 prefix
+                    if (!phone.isEmpty()) {
+                        // Remove any existing + or country code
+                        phone = phone.replaceAll("[^0-9]", ""); // Remove all non-digits
+
+                        // Remove leading 60 if present
+                        if (phone.startsWith("60")) {
+                            phone = phone.substring(2);
+                        }
+
+                        // Remove leading 0 if present
+                        if (phone.startsWith("0")) {
+                            phone = phone.substring(1);
+                        }
+
+                        // Add +60 prefix
+                        phone = "+60" + phone;
+                    }
+
+                    String finalPhone = phone;
                     executorService.execute(() -> {
                         if (id == null) {
-                            db.insertBuddy(name, gender, dob, phone, email, userId);
+                            db.insertBuddy(name, gender, dob, finalPhone, email, userId);
                         } else {
-                            db.updateBuddy(String.valueOf(id), name, gender, dob, phone, email);
+                            db.updateBuddy(String.valueOf(id), name, gender, dob, finalPhone, email);
                         }
-                        loadBuddies();
+                        // Refresh the list with current filters
+                        applyFilters();
+                        // Also refresh the upcoming birthday card
+                        loadUpcomingBirthday();
                     });
                 })
                 .setNegativeButton("Cancel", null)
@@ -328,7 +398,10 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("Are you sure you want to delete this buddy?")
                 .setPositiveButton("Delete", (dialog, which) -> executorService.execute(() -> {
                     db.deleteBuddy(String.valueOf(buddyId));
-                    loadBuddies();
+                    // Refresh the list with current filters
+                    applyFilters();
+                    // Also refresh the upcoming birthday card
+                    loadUpcomingBirthday();
                 }))
                 .setNegativeButton("Cancel", null)
                 .show();
