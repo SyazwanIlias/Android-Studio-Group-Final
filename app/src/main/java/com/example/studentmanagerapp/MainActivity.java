@@ -93,6 +93,8 @@ public class MainActivity extends AppCompatActivity {
                                     currentPhotoImageView.setImageBitmap(resizedBitmap);
                                     currentPhotoImageView.setPadding(0, 0, 0, 0);
                                     currentPhotoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                    currentPhotoImageView.setImageTintList(null);
+
                                 }
 
                                 if (inputStream != null) inputStream.close();
@@ -350,6 +352,7 @@ public class MainActivity extends AppCompatActivity {
                             ivBuddyPhoto.setImageBitmap(bitmap);
                             ivBuddyPhoto.setScaleType(ImageView.ScaleType.CENTER_CROP);
                             ivBuddyPhoto.setPadding(0, 0, 0, 0);
+                            ivBuddyPhoto.setImageTintList(null);
                         } catch (Exception e) {
                             // Keep default icon if photo fails to load
                         }
@@ -540,6 +543,7 @@ public class MainActivity extends AppCompatActivity {
                             ivBuddyPhoto.setImageBitmap(bitmap);
                             ivBuddyPhoto.setPadding(0, 0, 0, 0);
                             ivBuddyPhoto.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                            ivBuddyPhoto.setImageTintList(null);
                         }
 
                         if ("Male".equals(gender) && rbMale != null) {

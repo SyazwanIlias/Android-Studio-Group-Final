@@ -68,6 +68,7 @@ public class BuddyAdapter extends RecyclerView.Adapter<BuddyAdapter.BuddyViewHol
                         holder.ivBuddyIcon.setImageBitmap(bitmap);
                         holder.ivBuddyIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
                         holder.ivBuddyIcon.setPadding(0, 0, 0, 0);
+                        holder.ivBuddyIcon.setImageTintList(null);
                     } else {
                         setDefaultIcon(holder.ivBuddyIcon);
                     }
@@ -92,6 +93,7 @@ public class BuddyAdapter extends RecyclerView.Adapter<BuddyAdapter.BuddyViewHol
         imageView.setScaleType(ImageView.ScaleType.CENTER);
         int padding = (int) (14 * imageView.getContext().getResources().getDisplayMetrics().density);
         imageView.setPadding(padding, padding, padding, padding);
+        imageView.setImageTintList(null);
     }
 
     private Bitmap base64ToBitmap(String base64String) {
