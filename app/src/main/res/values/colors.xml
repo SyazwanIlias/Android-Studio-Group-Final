@@ -36,10 +36,15 @@
 
     <!-- Chart Colors -->
     <color name="chart_blue">#42A5F5</color>
+    <color name="chart_blue_light">#E3F2FD</color>
     <color name="chart_pink">#EC407A</color>
+    <color name="chart_pink_light">#FCE4EC</color>
     <color name="chart_purple">#AB47BC</color>
+    <color name="chart_purple_light">#F3E5F5</color>
     <color name="chart_green">#66BB6A</color>
+    <color name="chart_green_light">#E8F5E9</color>
     <color name="chart_orange">#FFA726</color>
+    <color name="chart_orange_light">#FFF3E0</color>
 
     <!-- Transparent Overlays -->
     <color name="overlay_light">#1A000000</color>

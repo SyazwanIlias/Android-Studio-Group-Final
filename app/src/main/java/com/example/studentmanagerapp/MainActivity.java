@@ -3,30 +3,43 @@ package com.example.studentmanagerapp;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -48,10 +61,48 @@ public class MainActivity extends AppCompatActivity {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    // Photo selection
+    private String currentPhotoBase64 = null;
+    private ImageView currentPhotoImageView = null;
+    private ActivityResultLauncher<Intent> photoPickerLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize photo picker launcher
+        photoPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri imageUri = result.getData().getData();
+                        if (imageUri != null) {
+                            try {
+                                InputStream inputStream = getContentResolver().openInputStream(imageUri);
+                                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+
+                                // Resize bitmap to save space
+                                Bitmap resizedBitmap = resizeBitmap(bitmap, 300, 300);
+
+                                // Convert to base64
+                                currentPhotoBase64 = bitmapToBase64(resizedBitmap);
+
+                                // Update ImageView
+                                if (currentPhotoImageView != null) {
+                                    currentPhotoImageView.setImageBitmap(resizedBitmap);
+                                    currentPhotoImageView.setPadding(0, 0, 0, 0);
+                                    currentPhotoImageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                }
+
+                                if (inputStream != null) inputStream.close();
+                            } catch (IOException e) {
+                                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                }
+        );
 
         db = new DatabaseHelper(this);
         userId = getIntent().getLongExtra("USER_ID", 1);
@@ -279,31 +330,135 @@ public class MainActivity extends AppCompatActivity {
             if (c != null && c.moveToFirst()) {
                 String name = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
 
-                mainHandler.post(() -> new AlertDialog.Builder(this)
-                        .setTitle(name)
-                        .setItems(new String[]{"Update", "Delete", "Send Wish"}, (dialog, which) -> {
-                            switch (which) {
-                                case 0: // Update
-                                    showBuddyDialog(buddyId);
-                                    break;
-                                case 1: // Delete
-                                    confirmDelete(buddyId);
-                                    break;
-                                case 2: // Send Wish
-                                    sendWhatsApp();
-                                    break;
-                            }
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show());
+                // Load photo
+                int photoIndex = c.getColumnIndex(DatabaseHelper.COL_BUDDY_PHOTO);
+                String photoBase64 = (photoIndex != -1) ? c.getString(photoIndex) : null;
+
+                mainHandler.post(() -> {
+                    // Inflate custom dialog layout
+                    View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_buddy_options, null);
+
+                    // Set buddy name
+                    TextView tvBuddyName = dialogView.findViewById(R.id.tvBuddyNameDialog);
+                    tvBuddyName.setText(name);
+
+                    // Set buddy photo
+                    ImageView ivBuddyPhoto = dialogView.findViewById(R.id.ivBuddyPhotoDialog);
+                    if (photoBase64 != null && !photoBase64.isEmpty() && ivBuddyPhoto != null) {
+                        try {
+                            Bitmap bitmap = base64ToBitmap(photoBase64);
+                            ivBuddyPhoto.setImageBitmap(bitmap);
+                            ivBuddyPhoto.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                            ivBuddyPhoto.setPadding(0, 0, 0, 0);
+                        } catch (Exception e) {
+                            // Keep default icon if photo fails to load
+                        }
+                    }
+
+                    // Get cards
+                    MaterialCardView cardUpdate = dialogView.findViewById(R.id.cardUpdate);
+                    MaterialCardView cardDelete = dialogView.findViewById(R.id.cardDelete);
+                    MaterialCardView cardSendWish = dialogView.findViewById(R.id.cardSendWish);
+
+                    // Create dialog
+                    AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                            .setView(dialogView)
+                            .setCancelable(true)
+                            .create();
+
+                    // Make dialog background transparent for rounded corners
+                    if (dialog.getWindow() != null) {
+                        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+                    }
+
+                    // Set click listeners
+                    cardUpdate.setOnClickListener(v -> {
+                        animateCardClick(cardUpdate);
+                        new Handler().postDelayed(() -> {
+                            dialog.dismiss();
+                            showBuddyDialog(buddyId);
+                        }, 200);
+                    });
+
+                    cardDelete.setOnClickListener(v -> {
+                        animateCardClick(cardDelete);
+                        new Handler().postDelayed(() -> {
+                            dialog.dismiss();
+                            confirmDelete(buddyId);
+                        }, 200);
+                    });
+
+                    cardSendWish.setOnClickListener(v -> {
+                        animateCardClick(cardSendWish);
+                        new Handler().postDelayed(() -> {
+                            dialog.dismiss();
+                            sendWhatsApp();
+                        }, 200);
+                    });
+
+                    // Cancel button
+                    dialogView.findViewById(R.id.btnCancelDialog).setOnClickListener(v -> {
+                        dialog.dismiss();
+                    });
+
+                    dialog.show();
+
+                    // Animate dialog entry
+                    animateDialogEntry(dialogView);
+                });
             }
             if (c != null) c.close();
         });
     }
 
+    private void animateCardClick(View card) {
+        card.animate()
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    card.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(100)
+                            .start();
+                })
+                .start();
+    }
+
+    private void animateDialogEntry(View dialogView) {
+        dialogView.setAlpha(0f);
+        dialogView.setScaleX(0.9f);
+        dialogView.setScaleY(0.9f);
+
+        dialogView.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(300)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+    }
+
     private void showBuddyDialog(Long id) {
+        // Only reset photo if adding new buddy, keep it for updates
+        if (id == null) {
+            currentPhotoBase64 = null;
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View v = LayoutInflater.from(this).inflate(R.layout.dialog_add_buddy, null);
+
+        // Update title
+        TextView tvDialogTitle = v.findViewById(R.id.tvDialogTitle);
+        if (tvDialogTitle != null) {
+            tvDialogTitle.setText(id == null ? "Add Buddy" : "Update Buddy");
+        }
+
+        // Photo elements
+        ImageView ivBuddyPhoto = v.findViewById(R.id.ivBuddyPhoto);
+        MaterialCardView btnSelectPhoto = v.findViewById(R.id.btnSelectPhoto);
+        currentPhotoImageView = ivBuddyPhoto;
 
         TextInputEditText etName = v.findViewById(R.id.etBuddyName);
         TextInputEditText etPhone = v.findViewById(R.id.etPhone);
@@ -312,6 +467,41 @@ public class MainActivity extends AppCompatActivity {
         RadioGroup rgGender = v.findViewById(R.id.rgGender);
         RadioButton rbMale = v.findViewById(R.id.rbMale);
         RadioButton rbFemale = v.findViewById(R.id.rbFemale);
+
+        // Gender cards
+        MaterialCardView cardMale = v.findViewById(R.id.cardMale);
+        MaterialCardView cardFemale = v.findViewById(R.id.cardFemale);
+
+        // Create dialog first so we can dismiss it later
+        AlertDialog dialog = builder.setView(v).create();
+
+        // Make dialog background transparent for rounded corners
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        // Handle photo selection
+        if (btnSelectPhoto != null) {
+            btnSelectPhoto.setOnClickListener(view -> {
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                photoPickerLauncher.launch(intent);
+            });
+        }
+
+        // Handle gender card clicks
+        if (cardMale != null && rbMale != null) {
+            cardMale.setOnClickListener(view -> {
+                rbMale.setChecked(true);
+                updateGenderCardSelection(cardMale, cardFemale, true);
+            });
+        }
+
+        if (cardFemale != null && rbFemale != null) {
+            cardFemale.setOnClickListener(view -> {
+                rbFemale.setChecked(true);
+                updateGenderCardSelection(cardMale, cardFemale, false);
+            });
+        }
 
         if (etDob != null) {
             etDob.setOnClickListener(view -> {
@@ -333,63 +523,126 @@ public class MainActivity extends AppCompatActivity {
                     String email = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_EMAIL));
                     String gender = c.getString(c.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_GENDER));
 
+                    // Load photo
+                    int photoIndex = c.getColumnIndex(DatabaseHelper.COL_BUDDY_PHOTO);
+                    String photoBase64 = (photoIndex != -1) ? c.getString(photoIndex) : null;
+
                     mainHandler.post(() -> {
                         if (etName != null) etName.setText(name);
                         if (etPhone != null) etPhone.setText(phone);
                         if (etDob != null) etDob.setText(dob);
                         if (etEmail != null) etEmail.setText(email);
-                        if ("Male".equals(gender) && rbMale != null) rbMale.setChecked(true);
-                        else if ("Female".equals(gender) && rbFemale != null) rbFemale.setChecked(true);
+
+                        // Set photo if exists
+                        if (photoBase64 != null && !photoBase64.isEmpty() && ivBuddyPhoto != null) {
+                            currentPhotoBase64 = photoBase64;
+                            Bitmap bitmap = base64ToBitmap(photoBase64);
+                            ivBuddyPhoto.setImageBitmap(bitmap);
+                            ivBuddyPhoto.setPadding(0, 0, 0, 0);
+                            ivBuddyPhoto.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        }
+
+                        if ("Male".equals(gender) && rbMale != null) {
+                            rbMale.setChecked(true);
+                            updateGenderCardSelection(cardMale, cardFemale, true);
+                        } else if ("Female".equals(gender) && rbFemale != null) {
+                            rbFemale.setChecked(true);
+                            updateGenderCardSelection(cardMale, cardFemale, false);
+                        }
                     });
                 }
                 if (c != null) c.close();
             });
         }
 
-        builder.setView(v)
-                .setTitle(id == null ? "Add Buddy" : "Update Buddy")
-                .setPositiveButton("Save", (dialog, which) -> {
-                    if (etName == null || etPhone == null || etDob == null || etEmail == null || rgGender == null) return;
-                    String name = etName.getText() != null ? etName.getText().toString() : "";
-                    String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
-                    String dob = etDob.getText() != null ? etDob.getText().toString() : "";
-                    String email = etEmail.getText() != null ? etEmail.getText().toString() : "";
-                    String gender = rbMale.isChecked() ? "Male" : (rbFemale.isChecked() ? "Female" : "Other");
+        // Handle Save button
+        v.findViewById(R.id.btnSaveAdd).setOnClickListener(view -> {
+            if (etName == null || etPhone == null || etDob == null || etEmail == null || rbMale == null || rbFemale == null) return;
 
-                    // Format phone number with +60 prefix
-                    if (!phone.isEmpty()) {
-                        // Remove any existing + or country code
-                        phone = phone.replaceAll("[^0-9]", ""); // Remove all non-digits
+            String name = etName.getText() != null ? etName.getText().toString().trim() : "";
+            String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
+            String dob = etDob.getText() != null ? etDob.getText().toString().trim() : "";
+            String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
+            String gender = rbMale.isChecked() ? "Male" : (rbFemale.isChecked() ? "Female" : "Other");
 
-                        // Remove leading 60 if present
-                        if (phone.startsWith("60")) {
-                            phone = phone.substring(2);
-                        }
+            // Validation
+            if (name.isEmpty()) {
+                Toast.makeText(this, "Please enter a name", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (dob.isEmpty()) {
+                Toast.makeText(this, "Please select a birthday", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                        // Remove leading 0 if present
-                        if (phone.startsWith("0")) {
-                            phone = phone.substring(1);
-                        }
+            // Format phone number with +60 prefix
+            if (!phone.isEmpty()) {
+                phone = phone.replaceAll("[^0-9]", "");
+                if (phone.startsWith("60")) {
+                    phone = phone.substring(2);
+                }
+                if (phone.startsWith("0")) {
+                    phone = phone.substring(1);
+                }
+                phone = "+60" + phone;
+            }
 
-                        // Add +60 prefix
-                        phone = "+60" + phone;
-                    }
+            String finalPhone = phone;
+            // Make sure photo is properly captured - use empty string if null
+            String finalPhoto = (currentPhotoBase64 != null && !currentPhotoBase64.trim().isEmpty()) ? currentPhotoBase64 : "";
 
-                    String finalPhone = phone;
-                    executorService.execute(() -> {
-                        if (id == null) {
-                            db.insertBuddy(name, gender, dob, finalPhone, email, userId);
-                        } else {
-                            db.updateBuddy(String.valueOf(id), name, gender, dob, finalPhone, email);
-                        }
-                        // Refresh the list with current filters
-                        applyFilters();
-                        // Also refresh the upcoming birthday card
-                        loadUpcomingBirthday();
+            executorService.execute(() -> {
+                boolean success;
+                if (id == null) {
+                    success = db.insertBuddy(name, gender, dob, finalPhone, email, finalPhoto, userId);
+                } else {
+                    success = db.updateBuddy(String.valueOf(id), name, gender, dob, finalPhone, email, finalPhoto);
+                }
+
+                if (success) {
+                    applyFilters();
+                    loadUpcomingBirthday();
+
+                    mainHandler.post(() -> {
+                        Toast.makeText(this, id == null ? "Buddy added!" : "Buddy updated!", Toast.LENGTH_SHORT).show();
                     });
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+                } else {
+                    mainHandler.post(() -> {
+                        Toast.makeText(this, "Error saving buddy", Toast.LENGTH_SHORT).show();
+                    });
+                }
+            });
+
+            dialog.dismiss();
+        });
+
+        // Handle Cancel button
+        v.findViewById(R.id.btnCancelAdd).setOnClickListener(view -> dialog.dismiss());
+
+        dialog.show();
+
+        // Animate dialog entry
+        animateDialogEntry(v);
+    }
+
+    private void updateGenderCardSelection(MaterialCardView cardMale, MaterialCardView cardFemale, boolean isMaleSelected) {
+        if (cardMale == null || cardFemale == null) return;
+
+        if (isMaleSelected) {
+            cardMale.setCardElevation(8f);
+            cardMale.setStrokeWidth(4);
+            cardMale.setStrokeColor(getColor(R.color.primary));
+
+            cardFemale.setCardElevation(2f);
+            cardFemale.setStrokeWidth(0);
+        } else {
+            cardFemale.setCardElevation(8f);
+            cardFemale.setStrokeWidth(4);
+            cardFemale.setStrokeColor(getColor(R.color.primary));
+
+            cardMale.setCardElevation(2f);
+            cardMale.setStrokeWidth(0);
+        }
     }
 
     private void confirmDelete(long buddyId) {
@@ -430,5 +683,37 @@ public class MainActivity extends AppCompatActivity {
             }
             if (c != null) c.close();
         });
+    }
+
+    // Photo helper methods
+    private String bitmapToBase64(Bitmap bitmap) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream.toByteArray();
+        return Base64.encodeToString(byteArray, Base64.DEFAULT);
+    }
+
+    private Bitmap base64ToBitmap(String base64String) {
+        byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
+    }
+
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+
+        float ratioBitmap = (float) width / (float) height;
+        float ratioMax = (float) maxWidth / (float) maxHeight;
+
+        int finalWidth = maxWidth;
+        int finalHeight = maxHeight;
+
+        if (ratioMax > ratioBitmap) {
+            finalWidth = (int) ((float) maxHeight * ratioBitmap);
+        } else {
+            finalHeight = (int) ((float) maxWidth / ratioBitmap);
+        }
+
+        return Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true);
     }
 }

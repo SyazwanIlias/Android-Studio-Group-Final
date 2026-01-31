@@ -1,10 +1,13 @@
 package com.example.studentmanagerapp;
 
 import android.database.Cursor;
-import android.graphics.Color;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -12,20 +15,27 @@ import com.google.android.material.card.MaterialCardView;
 
 public class BuddyAdapter extends RecyclerView.Adapter<BuddyAdapter.BuddyViewHolder> {
 
-    private Cursor mCursor;
-    private OnItemClickListener mListener;
-    private int selectedPosition = RecyclerView.NO_POSITION;
+    private Cursor cursor;
+    private OnItemClickListener listener;
 
     public interface OnItemClickListener {
         void onItemClick(long id);
     }
 
-    public void setOnItemClickListener(OnItemClickListener listener) {
-        mListener = listener;
+    public BuddyAdapter(Cursor cursor) {
+        this.cursor = cursor;
     }
 
-    public BuddyAdapter(Cursor cursor) {
-        mCursor = cursor;
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void swapCursor(Cursor newCursor) {
+        if (cursor != null) {
+            cursor.close();
+        }
+        cursor = newCursor;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -38,68 +48,71 @@ public class BuddyAdapter extends RecyclerView.Adapter<BuddyAdapter.BuddyViewHol
 
     @Override
     public void onBindViewHolder(@NonNull BuddyViewHolder holder, int position) {
-        if (mCursor == null || !mCursor.moveToPosition(position)) return;
+        if (cursor != null && cursor.moveToPosition(position)) {
+            long id = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_ID));
+            String name = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
+            String phone = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_PHONE));
 
-        try {
-            String name = mCursor.getString(mCursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_NAME));
-            String phone = mCursor.getString(mCursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_PHONE));
-            long id = mCursor.getLong(mCursor.getColumnIndexOrThrow(DatabaseHelper.COL_BUDDY_ID));
+            // Get photo
+            int photoIndex = cursor.getColumnIndex(DatabaseHelper.COL_BUDDY_PHOTO);
+            String photoBase64 = (photoIndex != -1) ? cursor.getString(photoIndex) : null;
 
-            holder.tvBuddyName.setText(name);
-            holder.tvBuddyPhone.setText(phone);
-            holder.itemView.setTag(id);
+            holder.tvName.setText(name);
+            holder.tvPhone.setText(phone != null && !phone.isEmpty() ? phone : "No phone");
 
-            MaterialCardView card = holder.itemView.findViewById(R.id.buddyCard);
-            if (card != null) {
-                if (selectedPosition == position) {
-                    // Smooth Purple Highlight matching your theme
-                    card.setCardBackgroundColor(Color.parseColor("#F3E8FF"));
-                    card.setStrokeWidth(4);
-                    card.setStrokeColor(Color.parseColor("#A855F7"));
-                } else {
-                    card.setCardBackgroundColor(Color.WHITE);
-                    card.setStrokeWidth(2);
-                    card.setStrokeColor(Color.parseColor("#EEEEEE"));
+            // Set photo or default icon
+            if (photoBase64 != null && !photoBase64.trim().isEmpty()) {
+                try {
+                    Bitmap bitmap = base64ToBitmap(photoBase64);
+                    if (bitmap != null) {
+                        holder.ivBuddyIcon.setImageBitmap(bitmap);
+                        holder.ivBuddyIcon.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                        holder.ivBuddyIcon.setPadding(0, 0, 0, 0);
+                    } else {
+                        setDefaultIcon(holder.ivBuddyIcon);
+                    }
+                } catch (Exception e) {
+                    // If photo fails to load, show default icon
+                    setDefaultIcon(holder.ivBuddyIcon);
                 }
+            } else {
+                setDefaultIcon(holder.ivBuddyIcon);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onItemClick(id);
+                }
+            });
         }
+    }
+
+    private void setDefaultIcon(ImageView imageView) {
+        imageView.setImageResource(android.R.drawable.ic_menu_myplaces);
+        imageView.setScaleType(ImageView.ScaleType.CENTER);
+        int padding = (int) (14 * imageView.getContext().getResources().getDisplayMetrics().density);
+        imageView.setPadding(padding, padding, padding, padding);
+    }
+
+    private Bitmap base64ToBitmap(String base64String) {
+        byte[] decodedBytes = Base64.decode(base64String, Base64.DEFAULT);
+        return BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.length);
     }
 
     @Override
     public int getItemCount() {
-        return (mCursor == null) ? 0 : mCursor.getCount();
+        return cursor != null ? cursor.getCount() : 0;
     }
 
-    public void swapCursor(Cursor newCursor) {
-        if (mCursor != null) mCursor.close();
-        mCursor = newCursor;
-        selectedPosition = RecyclerView.NO_POSITION;
-        notifyDataSetChanged();
-    }
+    static class BuddyViewHolder extends RecyclerView.ViewHolder {
+        TextView tvName, tvPhone;
+        ImageView ivBuddyIcon;
 
-    public class BuddyViewHolder extends RecyclerView.ViewHolder {
-        TextView tvBuddyName, tvBuddyPhone;
-
-        public BuddyViewHolder(@NonNull View itemView) {
+        BuddyViewHolder(View itemView) {
             super(itemView);
-            tvBuddyName = itemView.findViewById(R.id.tvBuddyName);
-            tvBuddyPhone = itemView.findViewById(R.id.tvBuddyPhone);
-
-            itemView.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION) {
-                    int previousSelected = selectedPosition;
-                    selectedPosition = position;
-                    notifyItemChanged(previousSelected);
-                    notifyItemChanged(selectedPosition);
-
-                    if (mListener != null) {
-                        mListener.onItemClick((Long) itemView.getTag());
-                    }
-                }
-            });
+            tvName = itemView.findViewById(R.id.tvBuddyName);
+            tvPhone = itemView.findViewById(R.id.tvBuddyPhone);
+            ivBuddyIcon = itemView.findViewById(R.id.ivBuddyIcon);
         }
     }
 }

@@ -9,7 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     public static final String DATABASE_NAME = "BuddyApp.db";
-    public static final int DATABASE_VERSION = 8;
+    public static final int DATABASE_VERSION = 9;
 
     // Users table
     public static final String TABLE_USERS = "users";
@@ -25,6 +25,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_BUDDY_DOB = "dob";
     public static final String COL_BUDDY_PHONE = "phone";
     public static final String COL_BUDDY_EMAIL = "email";
+    public static final String COL_BUDDY_PHOTO = "photo";
     public static final String COL_BUDDY_USER_ID = "user_id";
 
     public DatabaseHelper(Context context) {
@@ -45,15 +46,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_BUDDY_DOB + " TEXT," +
                 COL_BUDDY_PHONE + " TEXT," +
                 COL_BUDDY_EMAIL + " TEXT," +
+                COL_BUDDY_PHOTO + " TEXT," +
                 COL_BUDDY_USER_ID + " INTEGER," +
                 "FOREIGN KEY(" + COL_BUDDY_USER_ID + ") REFERENCES " + TABLE_USERS + "(" + COL_USER_ID + "))");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_BUDDIES);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_USERS);
-        onCreate(db);
+        if (oldVersion < 9) {
+            // Add photo column if upgrading from older version
+            db.execSQL("ALTER TABLE " + TABLE_BUDDIES + " ADD COLUMN " + COL_BUDDY_PHOTO + " TEXT");
+        }
     }
 
     // --- USER METHODS ---
@@ -84,7 +87,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // --- BUDDY CRUD METHODS ---
 
-    public boolean insertBuddy(String name, String gender, String dob, String phone, String email, long userId) {
+    public boolean insertBuddy(String name, String gender, String dob, String phone, String email, String photo, long userId) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put(COL_BUDDY_NAME, name);
@@ -92,11 +95,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_BUDDY_DOB, dob);
         cv.put(COL_BUDDY_PHONE, phone);
         cv.put(COL_BUDDY_EMAIL, email);
+        cv.put(COL_BUDDY_PHOTO, photo);
         cv.put(COL_BUDDY_USER_ID, userId);
         return db.insert(TABLE_BUDDIES, null, cv) != -1;
     }
 
-    public boolean updateBuddy(String id, String name, String gender, String dob, String phone, String email) {
+    public boolean updateBuddy(String id, String name, String gender, String dob, String phone, String email, String photo) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues cv = new ContentValues();
         cv.put(COL_BUDDY_NAME, name);
@@ -104,6 +108,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         cv.put(COL_BUDDY_DOB, dob);
         cv.put(COL_BUDDY_PHONE, phone);
         cv.put(COL_BUDDY_EMAIL, email);
+        cv.put(COL_BUDDY_PHOTO, photo);
         return db.update(TABLE_BUDDIES, cv, COL_BUDDY_ID + "=?", new String[]{id}) > 0;
     }
 
