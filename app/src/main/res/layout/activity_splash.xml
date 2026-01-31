@@ -21,7 +21,7 @@
             android:layout_margin="6dp"
             app:cardCornerRadius="130dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardBackgroundColor="#FBF7F0">
 
             <ImageView
                 android:id="@+id/logo"
@@ -32,7 +32,5 @@
 
         </androidx.cardview.widget.CardView>
     </androidx.cardview.widget.CardView>
-
-
 
 </RelativeLayout>
