@@ -64,20 +64,41 @@ public class ReportsActivity extends AppCompatActivity {
     }
 
     private void showSection(int section) {
-        // Reset Button Colors
-        btnShowGender.setTextColor(Color.WHITE);
-        btnShowBirthday.setTextColor(Color.WHITE);
-        btnShowStats.setTextColor(Color.WHITE);
 
-        // Toggle Visibility
-        layoutGender.setVisibility(section == 1 ? View.VISIBLE : View.GONE);
-        layoutBirthday.setVisibility(section == 2 ? View.VISIBLE : View.GONE);
-        layoutStats.setVisibility(section == 3 ? View.VISIBLE : View.GONE);
+        // Reset all buttons
+        btnShowGender.setBackgroundTintList(getColorStateList(android.R.color.transparent));
+        btnShowBirthday.setBackgroundTintList(getColorStateList(android.R.color.transparent));
+        btnShowStats.setBackgroundTintList(getColorStateList(android.R.color.transparent));
 
-        // Highlight Active Button (Neon Yellow)
-        if (section == 1) btnShowGender.setTextColor(Color.parseColor("#CCFF00"));
-        if (section == 2) btnShowBirthday.setTextColor(Color.parseColor("#CCFF00"));
-        if (section == 3) btnShowStats.setTextColor(Color.parseColor("#CCFF00"));
+        btnShowGender.setTextColor(getColor(R.color.text_secondary));
+        btnShowBirthday.setTextColor(getColor(R.color.text_secondary));
+        btnShowStats.setTextColor(getColor(R.color.text_secondary));
+
+        // Hide all layouts
+        layoutGender.setVisibility(View.GONE);
+        layoutBirthday.setVisibility(View.GONE);
+        layoutStats.setVisibility(View.GONE);
+
+        // Show selected section + highlight button
+        if (section == 1) {
+            layoutGender.setVisibility(View.VISIBLE);
+            btnShowGender.setBackgroundTintList(getColorStateList(R.color.primary));
+            btnShowGender.setTextColor(Color.WHITE);
+            genderPieChart.invalidate();
+        }
+
+        if (section == 2) {
+            layoutBirthday.setVisibility(View.VISIBLE);
+            btnShowBirthday.setBackgroundTintList(getColorStateList(R.color.primary));
+            btnShowBirthday.setTextColor(Color.WHITE);
+            birthdayBarChart.invalidate();
+        }
+
+        if (section == 3) {
+            layoutStats.setVisibility(View.VISIBLE);
+            btnShowStats.setBackgroundTintList(getColorStateList(R.color.primary));
+            btnShowStats.setTextColor(Color.WHITE);
+        }
     }
 
     private void loadGenderData() {
