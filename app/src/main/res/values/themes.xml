@@ -37,4 +37,8 @@
     <!-- Legacy Theme Names for Compatibility -->
     <style name="Theme.StudentManagerApp" parent="Theme.BuddyManager" />
 
+        <style name="CircleImage">
+            <item name="cornerSize">50%</item>
+        </style>
+
 </resources>

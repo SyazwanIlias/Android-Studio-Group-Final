@@ -15,7 +15,11 @@ import android.text.TextWatcher;
 import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -65,6 +69,11 @@ public class MainActivity extends AppCompatActivity {
     private String currentPhotoBase64 = null;
     private ImageView currentPhotoImageView = null;
     private ActivityResultLauncher<Intent> photoPickerLauncher;
+
+    // Animation views
+    private View appBarLayout;
+    private MaterialCardView searchCard, filterCard, upcomingBirthdayCard;
+    private FloatingActionButton fabAddBuddy, fabStatistics;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -158,6 +167,12 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             });
         }
+
+        // Initialize animation views
+        initAnimationViews();
+
+        // Start entrance animations
+        startEntranceAnimations();
 
         loadBuddies();
         loadUpcomingBirthday();
@@ -275,6 +290,27 @@ public class MainActivity extends AppCompatActivity {
                     tvDate.setText(finalClosestDate);
 
                     upcomingBirthdayCard.setVisibility(View.VISIBLE);
+
+                    // Animate the card when it appears
+                    upcomingBirthdayCard.setAlpha(0f);
+                    AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
+                    fadeIn.setDuration(500);
+
+                    TranslateAnimation slideUp = new TranslateAnimation(
+                            Animation.RELATIVE_TO_SELF, 0,
+                            Animation.RELATIVE_TO_SELF, 0,
+                            Animation.RELATIVE_TO_SELF, 0.3f,
+                            Animation.RELATIVE_TO_SELF, 0
+                    );
+                    slideUp.setDuration(500);
+
+                    AnimationSet cardAnimation = new AnimationSet(true);
+                    cardAnimation.addAnimation(fadeIn);
+                    cardAnimation.addAnimation(slideUp);
+                    cardAnimation.setInterpolator(new DecelerateInterpolator());
+
+                    upcomingBirthdayCard.startAnimation(cardAnimation);
+                    upcomingBirthdayCard.setAlpha(1f);
                 } else {
                     upcomingBirthdayCard.setVisibility(View.GONE);
                 }
@@ -569,13 +605,21 @@ public class MainActivity extends AppCompatActivity {
             String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
             String gender = rbMale.isChecked() ? "Male" : (rbFemale.isChecked() ? "Female" : "Other");
 
-            // Validation
+            // UPDATED VALIDATION - All fields required except Email and Photo
             if (name.isEmpty()) {
                 Toast.makeText(this, "Please enter a name", Toast.LENGTH_SHORT).show();
                 return;
             }
             if (dob.isEmpty()) {
                 Toast.makeText(this, "Please select a birthday", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (phone.isEmpty()) {
+                Toast.makeText(this, "Please enter a phone number", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!rbMale.isChecked() && !rbFemale.isChecked()) {
+                Toast.makeText(this, "Please select a gender", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -719,5 +763,80 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true);
+    }
+
+    // Animation Methods
+    private void initAnimationViews() {
+        appBarLayout = findViewById(R.id.appBarLayout);
+        upcomingBirthdayCard = findViewById(R.id.cardUpcomingBirthday);
+        fabAddBuddy = findViewById(R.id.fab_add_buddy);
+        fabStatistics = findViewById(R.id.fab_statistics);
+
+        // Set initial visibility for animated views
+        if (appBarLayout != null) appBarLayout.setAlpha(0f);
+        if (upcomingBirthdayCard != null) upcomingBirthdayCard.setAlpha(0f);
+        if (fabAddBuddy != null) fabAddBuddy.setAlpha(0f);
+        if (fabStatistics != null) fabStatistics.setAlpha(0f);
+        if (recyclerView != null) recyclerView.setAlpha(0f);
+    }
+
+    private void startEntranceAnimations() {
+        // Animate App Bar - Slide down and fade in
+        if (appBarLayout != null) {
+            AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
+            fadeIn.setDuration(600);
+
+            TranslateAnimation slideDown = new TranslateAnimation(
+                    Animation.RELATIVE_TO_SELF, 0,
+                    Animation.RELATIVE_TO_SELF, 0,
+                    Animation.RELATIVE_TO_SELF, -0.5f,
+                    Animation.RELATIVE_TO_SELF, 0
+            );
+            slideDown.setDuration(600);
+
+            AnimationSet appBarAnimation = new AnimationSet(true);
+            appBarAnimation.addAnimation(fadeIn);
+            appBarAnimation.addAnimation(slideDown);
+            appBarAnimation.setInterpolator(new DecelerateInterpolator());
+
+            appBarLayout.startAnimation(appBarAnimation);
+            appBarLayout.setAlpha(1f);
+        }
+
+        // Note: Birthday card animation is handled in loadUpcomingBirthday() when data loads
+
+        // Animate RecyclerView - Fade in
+        if (recyclerView != null) {
+            new Handler().postDelayed(() -> {
+                AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
+                fadeIn.setDuration(600);
+                fadeIn.setInterpolator(new DecelerateInterpolator());
+
+                recyclerView.startAnimation(fadeIn);
+                recyclerView.setAlpha(1f);
+            }, 500);
+        }
+
+        // Animate FABs - Scale and fade in
+        animateFAB(fabStatistics, 700);
+        animateFAB(fabAddBuddy, 850);
+    }
+
+    private void animateFAB(FloatingActionButton fab, long delay) {
+        if (fab != null) {
+            new Handler().postDelayed(() -> {
+                fab.setScaleX(0f);
+                fab.setScaleY(0f);
+                fab.setAlpha(0f);
+
+                fab.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .alpha(1f)
+                        .setDuration(400)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .start();
+            }, delay);
+        }
     }
 }

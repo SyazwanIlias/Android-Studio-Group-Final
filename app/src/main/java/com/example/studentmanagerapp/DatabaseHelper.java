@@ -54,8 +54,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 9) {
-            // Add photo column if upgrading from older version
-            db.execSQL("ALTER TABLE " + TABLE_BUDDIES + " ADD COLUMN " + COL_BUDDY_PHOTO + " TEXT");
+            // Check if photo column exists before adding it
+            try {
+                Cursor cursor = db.rawQuery("SELECT " + COL_BUDDY_PHOTO + " FROM " + TABLE_BUDDIES + " LIMIT 1", null);
+                cursor.close();
+                // Column exists, no need to add
+            } catch (Exception e) {
+                // Column doesn't exist, add it
+                db.execSQL("ALTER TABLE " + TABLE_BUDDIES + " ADD COLUMN " + COL_BUDDY_PHOTO + " TEXT");
+            }
         }
     }
 

@@ -14,7 +14,8 @@
         android:layout_width="match_parent"
         android:layout_height="182dp"
         android:background="@color/surface"
-        android:elevation="4dp">
+        android:elevation="4dp"
+        android:alpha="0">
 
         <RelativeLayout
             android:layout_width="match_parent"
@@ -69,6 +70,7 @@
             android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/searchCard"
                 android:layout_width="0dp"
                 android:layout_height="56dp"
                 android:layout_weight="1"
@@ -107,6 +109,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/filterCard"
                 android:layout_width="wrap_content"
                 android:layout_height="56dp"
                 android:layout_marginStart="8dp"
@@ -191,7 +194,8 @@
                 android:id="@+id/rvBuddies"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:nestedScrollingEnabled="false" />
+                android:nestedScrollingEnabled="false"
+                android:alpha="0"/>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -212,6 +216,7 @@
             app:backgroundTint="@color/primary"
             app:tint="@android:color/white"
             android:layout_marginBottom="16dp"
+            android:alpha="0"
             android:contentDescription="@string/content_description_statistics_fab" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -221,6 +226,7 @@
             android:src="@android:drawable/ic_input_add"
             app:backgroundTint="@color/accent"
             app:tint="@color/text_on_accent"
+            android:alpha="0"
             android:contentDescription="@string/content_description_add_buddy_fab" />
 
     </LinearLayout>
